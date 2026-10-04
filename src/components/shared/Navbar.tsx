@@ -98,11 +98,11 @@ export function Navbar() {
             <>
               <Link href="/login">
                 <Button variant="ghost" size="sm">
-                  Sign In
+                  Login
                 </Button>
               </Link>
               <Link href="/register">
-                <Button size="sm">Sign Up</Button>
+                <Button size="sm">Register</Button>
               </Link>
             </>
           )}

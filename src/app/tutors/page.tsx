@@ -23,10 +23,11 @@ export default function TutorsPage() {
           api.get("/categories").catch(() => ({ data: [] }))
         ]);
         
-        const tutorData = tutorsRes.data.tutors || tutorsRes.data;
+        // ব্যাকএন্ডের রেসপন্স ফরম্যাট অনুযায়ী সেফ ডাটা এক্সট্রাক션
+        const tutorData = tutorsRes.data?.tutors || tutorsRes.data?.data || tutorsRes.data;
         setTutors(Array.isArray(tutorData) ? tutorData : []);
         
-        const catData = categoriesRes.data.categories || categoriesRes.data;
+        const catData = categoriesRes.data?.categories || categoriesRes.data?.data || categoriesRes.data;
         setCategories(Array.isArray(catData) ? catData : []);
       } catch (err) {
         console.error("Failed to fetch tutors or categories:", err);
@@ -40,12 +41,17 @@ export default function TutorsPage() {
 
   // সার্চ এবং ক্যাটাগরি অনুযায়ী ট্যুটর ফিল্টার করা
   const filteredTutors = tutors.filter((tutor) => {
+    const tutorName = tutor.name || tutor.user?.name || "";
+    const tutorBio = tutor.bio || "";
+    
     const matchesSearch = 
-      tutor.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tutor.bio?.toLowerCase().includes(searchQuery.toLowerCase());
+      tutorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tutorBio.toLowerCase().includes(searchQuery.toLowerCase());
+      
     const matchesCategory = selectedCategory 
       ? tutor.categoryId === selectedCategory || tutor.category?.name === selectedCategory 
       : true;
+      
     return matchesSearch && matchesCategory;
   });
 
@@ -109,55 +115,58 @@ export default function TutorsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTutors.map((tutor) => (
-            <div
-              key={tutor.id}
-              className="rounded-3xl border border-border/60 bg-background p-6 shadow-sm flex flex-col justify-between space-y-6 transition-all hover:shadow-md hover:border-indigo-500/50 group"
-            >
-              <div className="space-y-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-600/10 text-indigo-600 font-extrabold text-2xl uppercase">
-                    {tutor.name?.charAt(0)}
+          {filteredTutors.map((tutor) => {
+            const displayName = tutor.name || tutor.user?.name || "Tutor";
+            return (
+              <div
+                key={tutor.id || Math.random()}
+                className="rounded-3xl border border-border/60 bg-background p-6 shadow-sm flex flex-col justify-between space-y-6 transition-all hover:shadow-md hover:border-indigo-500/50 group"
+              >
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-600/10 text-indigo-600 font-extrabold text-2xl uppercase">
+                      {displayName.charAt(0)}
+                    </div>
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 text-xs font-bold uppercase tracking-wider">
+                      Available
+                    </span>
                   </div>
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 text-xs font-bold uppercase tracking-wider">
-                    Available
-                  </span>
-                </div>
 
-                <div className="space-y-1">
-                  <h3 className="font-bold text-lg text-foreground group-hover:text-indigo-600 transition-colors">
-                    {tutor.name}
-                  </h3>
-                  <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wider">
-                    {tutor.category?.name || "Expert Mentor"}
+                  <div className="space-y-1">
+                    <h3 className="font-bold text-lg text-foreground group-hover:text-indigo-600 transition-colors">
+                      {displayName}
+                    </h3>
+                    <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wider">
+                      {tutor.category?.name || "Expert Mentor"}
+                    </p>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                    {tutor.bio || "Professional mentor ready to guide you through personalized 1-on-1 sessions."}
                   </p>
                 </div>
 
-                <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                  {tutor.bio || "Professional mentor ready to guide you through personalized 1-on-1 sessions."}
-                </p>
-              </div>
+                <div className="space-y-4 pt-4 border-t border-border/40">
+                  <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
+                    <div className="flex items-center gap-1 text-amber-500">
+                      <Star className="size-4 fill-amber-500" />
+                      <span>4.9 (Verified)</span>
+                    </div>
+                    <div className="flex items-center gap-0.5 text-foreground font-bold text-sm">
+                      <DollarSign className="size-4 text-indigo-600" />
+                      <span>{tutor.hourlyRate || 50} / hr</span>
+                    </div>
+                  </div>
 
-              <div className="space-y-4 pt-4 border-t border-border/40">
-                <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
-                  <div className="flex items-center gap-1 text-amber-500">
-                    <Star className="size-4 fill-amber-500" />
-                    <span>4.9 (Verified)</span>
-                  </div>
-                  <div className="flex items-center gap-0.5 text-foreground font-bold text-sm">
-                    <DollarSign className="size-4 text-indigo-600" />
-                    <span>{tutor.hourlyRate || 50} / hr</span>
-                  </div>
+                  <Link href={`/tutors/${tutor.id}`} className="block">
+                    <Button className="w-full rounded-xl py-5 font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm group-hover:shadow-md transition-all">
+                      View Profile & Book <ArrowRight className="ml-2 size-4" />
+                    </Button>
+                  </Link>
                 </div>
-
-                <Link href={`/tutors/${tutor.id}`} className="block">
-                  <Button className="w-full rounded-xl py-5 font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm group-hover:shadow-md transition-all">
-                    View Profile & Book <ArrowRight className="ml-2 size-4" />
-                  </Button>
-                </Link>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

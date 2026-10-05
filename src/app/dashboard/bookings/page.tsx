@@ -14,8 +14,8 @@ export default function StudentBookingsPage() {
   const fetchBookings = async () => {
     try {
       const res = await api.get("/bookings");
-      // সেফটি চেক: ডাটা অ্যারে না অবজেক্টের ভেতর আছে তা নিশ্চিত করা
-      const data = res.data.bookings || res.data;
+      // ব্যাকএন্ডের রেসপন্স ফরম্যাট অনুযায়ী সেফ ডাটা এক্সট্রাকশন
+      const data = res.data?.bookings || res.data;
       setBookings(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Failed to fetch bookings:", err);
@@ -31,9 +31,11 @@ export default function StudentBookingsPage() {
 
   const handleCancelBooking = async (bookingId: string) => {
     if (!confirm("Are you sure you want to cancel this booking?")) return;
+    
     setActionLoading(bookingId);
     try {
       await api.delete(`/bookings/${bookingId}`);
+      // লোকাল স্টেট থেকে ইনস্ট্যান্ট রিমুভ করা
       setBookings((prev) => prev.filter((b) => b.id !== bookingId));
     } catch (err: any) {
       alert(err.response?.data?.message || "Failed to cancel booking.");
@@ -95,7 +97,7 @@ export default function StudentBookingsPage() {
         <div className="space-y-4">
           {safeBookings.map((booking) => (
             <div 
-              key={booking.id} 
+              key={booking.id || Math.random()} 
               className="rounded-2xl border border-border/60 bg-background p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all hover:shadow-md"
             >
               <div className="flex items-center gap-4">
@@ -104,11 +106,11 @@ export default function StudentBookingsPage() {
                 </div>
                 <div className="space-y-1">
                   <h3 className="font-bold text-base text-foreground">
-                    {booking.tutor?.name || `Tutor ID: ${booking.tutorId}`}
+                    {booking.tutor?.user?.name || booking.tutor?.name || `Tutor ID: ${booking.tutorId}`}
                   </h3>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground font-medium">
                     <span className="flex items-center gap-1">
-                      <Clock className="size-3.5" /> Booked: {new Date(booking.createdAt).toLocaleDateString()}
+                      <Clock className="size-3.5" /> Booked: {booking.createdAt ? new Date(booking.createdAt).toLocaleDateString() : "N/A"}
                     </span>
                   </div>
                 </div>

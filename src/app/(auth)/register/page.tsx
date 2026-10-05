@@ -24,19 +24,27 @@ export default function RegisterPage() {
           email,
           password,
           name,
-          role,
+          role, // রোল পাস করা হচ্ছে (Student, Tutor, অথবা Admin)
         } as Record<string, any>,
         {
           onSuccess: () => {
-            router.push("/dashboard");
+            // রোল অনুযায়ী রিডাইরেক্ট করা
+            if (role === "ADMIN") {
+              router.push("/admin");
+            } else if (role === "TUTOR") {
+              router.push("/tutor/dashboard");
+            } else {
+              router.push("/dashboard");
+            }
           },
           onError: (ctx) => {
-            alert(ctx.error.message);
+            alert(ctx.error.message || "Registration failed");
           },
         }
       );
     } catch (err) {
       console.error(err);
+      alert("An unexpected error occurred.");
     } finally {
       setLoading(false);
     }
@@ -85,7 +93,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium leading-none">Role</label>
+            <label className="text-sm font-medium leading-none">Account Role</label>
             <select
               className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               value={role}
@@ -93,6 +101,7 @@ export default function RegisterPage() {
             >
               <option value="STUDENT">Student</option>
               <option value="TUTOR">Tutor</option>
+              <option value="ADMIN">Admin (Developer Mode)</option>
             </select>
           </div>
 

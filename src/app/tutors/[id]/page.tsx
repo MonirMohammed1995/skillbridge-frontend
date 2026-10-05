@@ -10,13 +10,13 @@ import { Star, GraduationCap, Calendar, Clock, CheckCircle2, DollarSign } from "
 
 export default function TutorDetailPage() {
   const params = useParams();
-  const id = params.id as string;
+  const id = Array.isArray(params?.id) ? params.id[0] : params?.id;
   const router = useRouter();
 
   const [tutor, setTutor] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   
-  // বুকিং ফর্ম স্টেট (স্কিমা অনুযায়ী date, startTime, endTime)
+  // বুকিং ফর্ম স্টেট
   const [bookingDate, setBookingDate] = useState("");
   const [startTime, setStartTime] = useState("10:00");
   const [endTime, setEndTime] = useState("11:00");
@@ -26,16 +26,19 @@ export default function TutorDetailPage() {
 
   useEffect(() => {
     const fetchTutorDetails = async () => {
+      if (!id) return;
       try {
         const res = await api.get(`/tutors/${id}`);
-        setTutor(res.data.tutor || res.data);
+        // সেফ ডাটা এক্সট্রাকশন
+        const tutorData = res.data?.tutor || res.data?.data || res.data;
+        setTutor(tutorData);
       } catch (err) {
         console.error("Failed to fetch tutor details:", err);
       } finally {
         setLoading(false);
       }
     };
-    if (id) fetchTutorDetails();
+    fetchTutorDetails();
   }, [id]);
 
   const handleBookSession = async (e: React.FormEvent) => {
@@ -58,7 +61,9 @@ export default function TutorDetailPage() {
         router.push("/dashboard/bookings");
       }, 2000);
     } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to book session. Please try again.");
+      console.error("Booking error:", err);
+      const errorMessage = err.response?.data?.error || err.response?.data?.message || "Failed to book session. Please try again.";
+      alert(errorMessage);
     } finally {
       setBookingLoading(false);
     }
@@ -72,6 +77,8 @@ export default function TutorDetailPage() {
     return <div className="text-center py-20 text-muted-foreground">Tutor not found.</div>;
   }
 
+  const displayName = tutor.name || tutor.user?.name || "Expert Mentor";
+
   return (
     <div className="container mx-auto px-4 py-12 max-w-5xl">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -80,11 +87,11 @@ export default function TutorDetailPage() {
         <div className="lg:col-span-2 space-y-6">
           <div className="rounded-3xl border border-border/60 bg-background p-8 shadow-sm space-y-6">
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
-              <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-indigo-600/10 text-indigo-600 font-bold text-3xl uppercase">
-                {tutor.name?.charAt(0)}
+              <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-indigo-600/10 text-indigo-600 font-bold text-3xl uppercase shrink-0">
+                {displayName.charAt(0)}
               </div>
               <div className="text-center sm:text-left space-y-2">
-                <h1 className="text-2xl font-extrabold text-foreground">{tutor.name}</h1>
+                <h1 className="text-2xl font-extrabold text-foreground">{displayName}</h1>
                 <p className="text-sm font-semibold text-indigo-600 uppercase tracking-wider">
                   {tutor.category?.name || "Professional Tutor"}
                 </p>

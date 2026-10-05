@@ -1,24 +1,41 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
 import { api } from "@/lib/api";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Calendar, CheckCircle, BookOpen, Clock } from "lucide-react";
 
 export default function StudentDashboard() {
-  const { data: session, isPending } = useSession();
+  const { data: session, isPending: sessionPending } = useSession();
+  const router = useRouter();
   const user = session?.user as any;
 
   const [bookings, setBookings] = useState<any[]>([]);
   const [loadingBookings, setLoadingBookings] = useState(true);
 
   useEffect(() => {
+    if (!sessionPending && user) {
+      // যদি ইউজার ADMIN হয়, তবে তাকে স্টুডেন্ট ড্যাশবোর্ডে না রেখে সরাসরি /admin এ পাঠিয়ে দেওয়া হবে
+      if (user.role === "ADMIN") {
+        router.push("/admin");
+        return;
+      }
+      
+      // যদি TUTOR হয়, তবে ট্যুটর ড্যাশবোর্ডে পাঠানো হবে
+      if (user.role === "TUTOR") {
+        router.push("/tutor/dashboard");
+        return;
+      }
+    }
+  }, [user, sessionPending, router]);
+
+  useEffect(() => {
     const fetchStudentBookings = async () => {
       try {
         const res = await api.get("/bookings");
-        // নিশ্চিত করা হলো যেন ডাটা সবসময় অ্যারে হিসেবে সেট হয়
-        const data = res.data.bookings || res.data;
+        const data = res.data?.bookings || res.data || [];
         setBookings(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Failed to fetch dashboard bookings:", err);
@@ -28,22 +45,27 @@ export default function StudentDashboard() {
       }
     };
 
-    fetchStudentBookings();
-  }, []);
+    if (session && user?.role === "STUDENT") {
+      fetchStudentBookings();
+    } else if (!sessionPending) {
+      setLoadingBookings(false);
+    }
+  }, [session, sessionPending, user]);
 
-  if (isPending || loadingBookings) {
+  if (sessionPending || loadingBookings) {
     return <LoadingSpinner fullScreen text="Loading dashboard..." size="xl" />;
   }
 
-  // সেফটি চেক সহ ফিল্টার করা
   const safeBookings = Array.isArray(bookings) ? bookings : [];
-  const upcomingCount = safeBookings.filter((b) => b.status === "PENDING" || b.status === "CONFIRMED").length;
-  const completedCount = safeBookings.filter((b) => b.status === "COMPLETED").length;
+  const upcomingCount = safeBookings.filter((b) => b?.status === "PENDING" || b?.status === "CONFIRMED").length;
+  const completedCount = safeBookings.filter((b) => b?.status === "COMPLETED").length;
 
   return (
     <div className="container mx-auto px-4 py-10 max-w-5xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-extrabold tracking-tight">Welcome back, {user?.name || "Student"}! 👋</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight">
+          Welcome back, {user?.name || "Student"}! 👋
+        </h1>
         <p className="text-sm text-muted-foreground mt-1">Here is the summary of your learning activities and upcoming sessions.</p>
       </div>
 
@@ -90,14 +112,16 @@ export default function StudentDashboard() {
         ) : (
           <div className="space-y-3">
             {safeBookings.slice(0, 3).map((booking) => (
-              <div key={booking.id} className="flex items-center justify-between p-4 rounded-xl border border-border/40 bg-muted/20">
+              <div key={booking.id || Math.random()} className="flex items-center justify-between p-4 rounded-xl border border-border/40 bg-muted/20">
                 <div className="flex items-center gap-3">
                   <Clock className="size-5 text-indigo-600" />
                   <div>
                     <p className="font-semibold text-sm">
-                      {booking.tutor?.name || `Tutor ID: ${booking.tutorId}`}
+                      {booking.tutor?.user?.name || booking.tutor?.name || `Tutor ID: ${booking.tutorId}`}
                     </p>
-                    <p className="text-xs text-muted-foreground">Booked on: {new Date(booking.createdAt).toLocaleDateString()}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Booked on: {booking.createdAt ? new Date(booking.createdAt).toLocaleDateString() : "N/A"}
+                    </p>
                   </div>
                 </div>
                 <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400">
